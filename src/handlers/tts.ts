@@ -4,6 +4,7 @@ import { CORS_HEADERS, errorResponse } from "../lib/http";
 type TtsBody = {
   text?: unknown;
   voice?: unknown;
+  rate?: unknown;
 };
 
 function isJsonContentType(value: string) {
@@ -16,7 +17,7 @@ function parseBody(body: unknown) {
     throw new Error("request body must be an object");
   }
 
-  const { text, voice } = body as TtsBody;
+  const { text, voice, rate } = body as TtsBody;
 
   if (typeof text !== "string" || text.trim().length === 0) {
     throw new Error("text is required");
@@ -32,9 +33,20 @@ function parseBody(body: unknown) {
     }
   }
 
+  if (rate !== undefined) {
+    if (typeof rate !== "string") {
+      throw new Error("rate must be a string");
+    }
+
+    if (rate.trim().length === 0) {
+      throw new Error("rate must be a non-empty string");
+    }
+  }
+
   return {
     text: text.trim(),
     voice: typeof voice === "string" ? voice.trim() : voice,
+    rate: typeof rate === "string" ? rate.trim() : undefined,
   };
 }
 

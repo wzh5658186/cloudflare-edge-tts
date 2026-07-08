@@ -138,6 +138,28 @@ describe("worker routes", () => {
     });
   });
 
+  it("forwards explicit rate for tts requests", async () => {
+    const response = await dispatch(
+      new IncomingRequest("https://example.com/tts", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          text: "hello world",
+          rate: "+15%",
+        }),
+      })
+    );
+
+    expect(response.status).toBe(200);
+    expect(createAudioStreamMock).toHaveBeenCalledWith({
+      text: "hello world",
+      voice: undefined,
+      rate: "+15%",
+    });
+  });
+
   it("accepts application json with charset parameters", async () => {
     const response = await dispatch(
       new IncomingRequest("https://example.com/tts", {
@@ -283,6 +305,52 @@ describe("worker routes", () => {
       error: {
         code: "INVALID_REQUEST",
         message: "voice must be a non-empty string",
+      },
+    });
+  });
+
+  it("rejects tts requests with non-string rate", async () => {
+    const response = await dispatch(
+      new IncomingRequest("https://example.com/tts", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          text: "hello world",
+          rate: 123,
+        }),
+      })
+    );
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      error: {
+        code: "INVALID_REQUEST",
+        message: "rate must be a string",
+      },
+    });
+  });
+
+  it("rejects tts requests with an empty rate string", async () => {
+    const response = await dispatch(
+      new IncomingRequest("https://example.com/tts", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          text: "hello world",
+          rate: " ",
+        }),
+      })
+    );
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      error: {
+        code: "INVALID_REQUEST",
+        message: "rate must be a non-empty string",
       },
     });
   });

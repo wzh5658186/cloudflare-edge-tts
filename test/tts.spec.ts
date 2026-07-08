@@ -169,6 +169,35 @@ describe("createAudioStream", () => {
     expect(Array.from(bytes)).toEqual([1, 2, 3]);
   });
 
+  it("includes rate parameter in the generated ssml when provided", async () => {
+    const socket = new FakeWebSocket();
+    const fetchMock = vi.fn().mockResolvedValue({
+      status: 101,
+      headers: new Headers({
+        Upgrade: "websocket",
+      }),
+      webSocket: socket,
+    });
+    const runtime = createRuntime(fetchMock);
+
+    const stream = await createAudioStream(
+      {
+        text: "hello world",
+        rate: "+15%",
+      },
+      runtime
+    );
+
+    queueMicrotask(() => {
+      socket.emitMessage(createAudioFrame([1, 2, 3]));
+      socket.close();
+    });
+
+    await readAll(stream);
+
+    expect(String(socket.sent[1])).toContain("rate='+15%'");
+  });
+
   it("normalizes short voice names before sending ssml", async () => {
     const socket = new FakeWebSocket();
     const fetchMock = vi.fn().mockResolvedValue({
